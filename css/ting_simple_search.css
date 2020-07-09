@@ -1,0 +1,57 @@
+
+
+.ting-object-tree-item {
+    display: inline-block;
+    width: 194px;
+    margin: auto;
+    min-height: 340px;
+}
+
+.ting-object-tree-item h2 {
+    font-family: FaktPro-Normal,sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+    margin-bottom: 0px;
+    color: #000000;
+    padding-top: 7px;
+}
+
+.ting-object-tree-item .field-name-ting-author {
+    color: #000000;
+    font-family: FaktPro-SemiBold,sans-serif;
+}
+
+.ting-object-tree {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+}
+
+.ting-object-tree-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+    background: linear-gradient(rgba(255,138,0,.2),#fff);
+    padding-top: 20px;
+    padding-bottom: 20px;
+        
+}
+
+.ting-object-tree-link {
+    display: inline-block;
+    width: 194px;
+    margin: auto;
+}
+
+.ting-object-tree-link a {
+    font-size: 18px;
+    color: #006a97;
+    text-transform: capitalize;
+        
+}
+
+.ting-object-tree-links h2 {
+    display: block;
+}
+
+

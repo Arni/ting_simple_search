@@ -1,0 +1,144 @@
+<?php //
+
+/**
+ * @file
+ * Enables search using simple search api.
+ */
+
+
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ *
+ * It simply tells panels where to find the .inc files that define various
+ * args, contexts, content_types.
+ */
+function ting_simple_search_ctools_plugin_directory($module, $plugin) {
+  if ($module == 'ctools' && !empty($plugin)) {
+    return "plugins/$plugin";
+  }
+}
+
+function ting_simple_search_theme($existing, $type, $theme, $path) {
+  return array(
+    'ting_simple_search_covers' => array(
+      'variables' => array('results' => NULL),
+      'template' => 'covers-search-result',
+      'path' => $path . '/templates',
+    ),
+    'ting_simple_search_item' => array(
+      'variables' => array(
+        'title' => NULL,
+        'creators' => NULL,
+        'cover' => NULL,
+      ),
+      'template' => 'ting-simple-search-item',
+      'path' => $path . '/templates',
+    ),
+  );
+}
+
+function ting_simple_search_search($query) {
+  $parameters = array(
+    "q" => $query,
+    "debug" => "true"
+  );
+  $results = ting_simple_search_request($parameters);
+  $objects = ting_simple_search_process_results ($results);
+  $items = array();
+  foreach ($objects as $object) {
+    $cover = ting_simple_search_render_cover($object);
+    $items[] = theme ('ting_simple_search_item', array('title' => $object->title, 'creators' => $object->creators, 'cover' => $cover,));
+  }
+  $content = theme('ting_simple_search_covers', array('results' => $items)); 
+  //file_put_contents("/var/www/drupal7vm/drupal/debug/simple6.txt", print_r($content, TRUE), FILE_APPEND);
+  return $content;
+}
+
+function ting_simple_search_process_results($results) {
+  $objects = array();
+  foreach ($results->result as $result_object) {
+    $object = new SimpleSearchObject();
+    $object->id = $result_object->pids[0];
+    $object->title = $result_object->title;
+    $object->creators = $result_object->debug->creator[0];
+    $object->pids = $result_object->pids;
+    $object->language = $result_object->language;
+    $object->pid_details = $result_object->pid_details;
+    $objects[] = $object;
+  }
+  //file_put_contents("/var/www/drupal7vm/drupal/debug/simple3.txt", print_r($objects, TRUE), FILE_APPEND);
+  return $objects;
+}
+
+
+
+function ting_simple_search_render_cover($object) {
+  $image = theme('ting_object_cover', array('elements' => array('#object' => $object, '#image_style' => 'ding_list_medium')));
+  $options = array(
+      'html' => TRUE,
+      'attributes' => array('title' => $object->title),
+  );
+
+  return l($image, 'ting/collection/' . $object->id, $options);
+
+}
+
+
+//function ting_simple_search_get_token() {
+//  $key = "1ba2428f-1fc3-4159-82ff-869b87026bcd"; 
+//  $secret = variable_get('ting_simple_search_secret', '');
+//
+//// request token
+//  $basic_credentials = base64_encode($key.':'.$secret);
+//  $tk = curl_init('https://auth.dbc.dk/oauth/token');
+//  curl_setopt($tk, CURLOPT_HTTPHEADER, array('Authorization: Basic '.$basic_credentials, 'Content-Type: application/x-www-form-urlencoded;charset=UTF-8'));
+//  curl_setopt($tk, CURLOPT_POSTFIELDS, 'grant_type=password&username=@773000&password=@773000');
+//  curl_setopt($tk, CURLOPT_RETURNTRANSFER, true);
+//  $token = json_decode(curl_exec($tk));
+//  curl_close($tk);  
+//  return $token;
+//}
+
+function ting_simple_search_request($parameters) {
+  $service_url = 'https://randers-simple-search.dbc.dk/search';
+  
+  $curl = curl_init($service_url);
+  curl_setopt($curl, CURLOPT_HTTPHEADER, array(                                                                          
+    'Content-Type: application/json',                                                                                
+    'Accept: application/json')                                                                       
+  ); 
+  curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($curl, CURLOPT_POST, true);
+  curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($parameters));
+  $curl_response = curl_exec($curl);
+  if ($curl_response === false) {
+    $info = curl_getinfo($curl);
+    curl_close($curl);
+  }
+  curl_close($curl);
+  $decoded = json_decode($curl_response);
+  //file_put_contents("/var/www/drupal7vm/drupal/debug/simple1.txt", print_r($decoded, TRUE), FILE_APPEND);
+  if (isset($decoded->response->status) && $decoded->response->status == 'ERROR') {
+    //TODO Handle error
+  }
+  return  $decoded;
+}
+
+class SimpleSearchObject {
+  public $title;
+  public $creators;
+  public $id;
+  public $pids;
+  public $language;
+  public $pid_details;
+
+  public function getCreators() {
+    return array($this->creators);
+  }
+
+  public function getTitle() {
+    return $this->title;
+  }
+
+}

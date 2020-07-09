@@ -1,0 +1,8 @@
+name = Ting Simple Search
+description = Search using simple search api
+package = Ding!
+version = "7.x-0.26"
+core = 7.x
+dependencies[] = ting
+dependencies[] = search
+stylesheets[all][] = css/ting_simple_search.css
