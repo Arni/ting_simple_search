@@ -51,8 +51,9 @@ function ting_simple_search_search($query) {
     $items[] = theme ('ting_simple_search_item', array('title' => $object->title, 'creators' => $object->creators, 'cover' => $cover,));
   }
   $content = theme('ting_simple_search_covers', array('results' => $items)); 
+  $content_data = ting_simple_search_parse_data($objects, $query);
   //file_put_contents("/var/www/drupal7vm/drupal/debug/simple6.txt", print_r($content, TRUE), FILE_APPEND);
-  return $content;
+  return $content . $content_data;
 }
 
 function ting_simple_search_process_results($results) {
@@ -61,7 +62,11 @@ function ting_simple_search_process_results($results) {
     $object = new SimpleSearchObject();
     $object->id = $result_object->pids[0];
     $object->title = $result_object->title;
-    $object->creators = $result_object->debug->creator[0];
+    if (isset($result_object->debug->creator)) {
+       $object->creators = $result_object->debug->creator[0];
+    } else {
+      $object->creators = '';
+    }
     $object->pids = $result_object->pids;
     $object->language = $result_object->language;
     $object->pid_details = $result_object->pid_details;
@@ -84,6 +89,68 @@ function ting_simple_search_render_cover($object) {
 
 }
 
+function ting_simple_search_parse_data($objects, $query) {
+  //ini_set('memory_limit', '1G');
+  $path = "data/autodatafull.txt";
+  $serialized_data = file_get_contents($path);
+  $data = unserialize($serialized_data);
+  if (array_key_exists($query, $data)) {
+    $search_data = array();
+    $i = 1;
+    foreach ($data[$query] as $key => $data_object) {
+      $search_data[$key] = array('number' => $i, 'count' => $data_object, 'simple_search_object' => NULL);
+      $i++;
+    }
+
+    foreach ($objects as $object) {
+      foreach ($object->pids as $pid) {
+        if (array_key_exists($pid, $search_data)) {
+          $object->count += $search_data[$pid]['count'];
+          $object->number_in_searches[] = $search_data[$pid]['number'];
+          $search_data[$pid]['simple_search_object'] = $object;
+        }
+      }
+    }
+  }
+  $simple_search_table = ting_simple_search_create_simple_search_table($objects);
+  $searches_table = ting_simple_search_create_searches_table($search_data); 
+  file_put_contents("/var/www/drupal7vm/drupal/debug/simple11.txt", print_r(memory_get_peak_usage(), TRUE), FILE_APPEND);
+  //file_put_contents("/var/www/drupal7vm/drupal/debug/simple7.txt", print_r($objects, TRUE), FILE_APPEND);
+  return $simple_search_table . $searches_table ;
+}
+
+function ting_simple_search_create_searches_table ($search_data) {
+  $header = array('Number', 'Pid', 'Count', 'Found');
+  $rows = array();
+  $i =1;
+  foreach ($search_data as $key => $data) {
+    $pid = l($key, '/ting/collection/' . $key);
+    if (isset($data['simple_search_object'])) {
+      $title = l($data['simple_search_object']->title, '/ting/collection/' . $data['simple_search_object']->id);
+    } else {
+      $title ='';
+    }
+    $rows[] = array($i, $pid, $data['count'], $title);
+    $i++;
+    if ($i > 20) {
+      break;
+    }
+  }
+  return theme('table', array('header' => $header, 'rows' => $rows));
+}
+
+function ting_simple_search_create_simple_search_table ($objects) {
+  $header = array('Number', 'Title', 'Count', 'Number in searches');
+  $rows = array();
+  $i =1;
+  foreach ($objects as $object) {
+    $title = l($object->title, '/ting/collection/' . $object->id);
+    $number_in_searches = implode(',', $object->number_in_searches);
+    $rows[] = array($i, $title, $object->count, $number_in_searches);
+    $i++;
+  }
+  return theme('table', array('header' => $header, 'rows' => $rows));
+}
 
 //function ting_simple_search_get_token() {
 //  $key = "1ba2428f-1fc3-4159-82ff-869b87026bcd"; 
@@ -132,6 +199,9 @@ class SimpleSearchObject {
   public $pids;
   public $language;
   public $pid_details;
+  public $count = 0;
+  public $hit = true;
+  public $number_in_searches = array();
 
   public function getCreators() {
     return array($this->creators);

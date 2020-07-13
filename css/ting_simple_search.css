@@ -1,8 +1,21 @@
 
+.page-search-ting .content-wrapper .pane-content .default-panel-layout .left-and-main-content .layout-wrapper .secondary-content {
+    width: 26.6726%;
+}
+
+.page-search-ting .content-wrapper .pane-content .default-panel-layout .left-and-main-content .layout-wrapper .primary-content {
+    width: 70.8363%;
+}
+
+
+.search-results ul.ting-object-tree {
+    padding-left: 0px;
+}
+
 
 .ting-object-tree-item {
     display: inline-block;
-    width: 194px;
+    width: 172px;
     margin: auto;
     min-height: 340px;
 }
